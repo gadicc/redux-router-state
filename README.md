@@ -63,20 +63,35 @@ State:
 **Optional react-router inspired config:**
 
 ```js
-<Provider store={Store} />
-  <Router>
-    <Route name="home" path="/">
-      <Home />
-    </Route>
-    <Route name="issues" path="/issues/:id">
-        <h1>Issue #{props.id}</h1>
-    </Route>
-    <Route name="users" path="/users"
-      mapRouteToProps={route => {asc: route.queryParams.asc}}>
-        <h1>Users ({props.asc?"Asceending":"Descending")</h1>
-    </Route>
-  </Router>
-</Provider>
+const App = () => (
+  <Provider store={Store} />
+    <Router>
+      <Route name="home" path="/">
+        <div>
+          <h1>Welcome home!</h1>
+          <div>
+            You can put simple things inline but using component=
+            is better (and we might stop supporting this)
+          </div>
+        </div>
+      </Route>
+
+      <Route name="issues" path="/issues/:id" component={ShowIssue} />
+
+      <Route name="users" path="/users" component={ShowUsers}
+        mapRouteToProps={route => {asc: route.queryParams.asc}}>
+    </Router>
+  </Provider>
+);
+
+const ShowIssue({id}) => (
+  <h1>Issue #{id}</h1>
+);
+
+const ShowUsers({asc}) => (
+  <h1>Users ({props.asc?"Asceending":"Descending")</h1>
+);
+
 ```
 
 **Creating links:**

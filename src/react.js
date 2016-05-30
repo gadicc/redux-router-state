@@ -16,7 +16,7 @@ class RouterComponent extends Component {
       throw new Error("No match");
     }
 
-    return match.props.children;
+    return match;
   }
 }
 RouterComponent.propTypes = {
@@ -38,18 +38,17 @@ class Route extends Component {
   constructor(props) {
     super(props);
 
-    let mapStateToProps;
     if (props.mapRouteToProps)
-      mapStateToProps = props.mapRouteToProps;
+      this.mapStateToProps = props.mapRouteToProps;
     else if (props.mapRouteToProps === false)
-      mapStateToProps = false;
+      this.mapStateToProps = false;
     else
-      mapStateToProps = defaultMapRouteToProps;
+      this.mapStateToProps = defaultMapRouteToProps;
 
-    if (mapStateToProps) {
-      this.state = mapStateToProps(Router._store.getState().route);
+    if (this.props.children && this.mapStateToProps) {
+      this.state = this.mapStateToProps(Router._store.getState().route);
       this._unsubsribe = Router._store.subscribe(() => {
-        this.state = mapStateToProps(Router._store.getState().route);
+        this.state = this.mapStateToProps(Router._store.getState().route);
       });
     } else
       this.state = {};
@@ -60,14 +59,20 @@ class Route extends Component {
   }
 
   render() {
-    return React.cloneElement(
-      this.props.component || this.props.children,
-      this.state
-    );
+    if (this.props.children)
+      return React.cloneElement(
+        this.props.children,
+        this.state
+      );
+    else
+      return React.createElement(connectRouter(
+        this.mapStateToProps,
+        this.props.component
+      ));
   }
 }
 Route.propTypes = {
-  component: PropTypes.node,
+//  component: PropTypes.instanceOf(Component),
   children: PropTypes.node,
   mapRouteToProps: PropTypes.oneOfType([PropTypes.bool, PropTypes.func])
 };
