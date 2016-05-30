@@ -3,7 +3,8 @@
   "parser": "babel-eslint",
   
   "rules": {
-    "strict": 0
+    "strict": 0,
+    "comma-dangle": [1, "only-multiline"]
   },
 
   "parserOptions": {
@@ -16,8 +17,7 @@
   },
 
   "plugins": [
-    "react",
-    "jsx-control-statements"
+    "react"
   ],
 
   "globals": {

@@ -10,44 +10,42 @@ const document = jsdom.jsdom('<!doctype html><html><body></body></html>', {
 const window = document.defaultView;
 global.document = document;
 global.window = window;
-
-propagateToGlobal(window);
-
-// from mocha-jsdom https://github.com/rstacruz/mocha-jsdom/blob/master/index.js#L80
-function propagateToGlobal (window) {
-  for (let key in window) {
-    if (!window.hasOwnProperty(key)) continue
-    if (key in global) continue
-
-    global[key] = window[key]
-  }
-}
+global.navigator = window.navigator; // for reactDOM
 
 const Router = require('./index.js').default;
-Router.start();
+Router.init();
 
 describe('Router', () => {
 
   describe('matches', () => {
 
-    it('pathnames', () => {
-      let result;
-      Router._clearRoutes();
-      Router.add('issues_id', '/issues/:id');
-      Router.add('issues_action', '/issues/:id/:action');
+    describe('pathnames', () => {
 
-      result = Router._matchPathname('/issues/1');
-      expect(result).to.deep.equal({
-        routeName: 'issues_id',
-        pathname: '/issues/1',
-        params: { id: '1' }
+      it('when multiple similar routes exist', () => {
+        let result;
+        Router._clearRoutes();
+        Router.add('issues_id', '/issues/:id', 1);
+        Router.add('issues_action', '/issues/:id/:action', 2);
+
+        result = Router._matchPathname('/issues/1');
+        expect(result).to.deep.equal({
+          routeName: 'issues_id',
+          pathname: '/issues/1',
+          params: { id: '1' },
+          data: 1,
+        });
+
+        result = Router._matchPathname('/issues/1/edit');
+        expect(result).to.deep.equal({
+          routeName: 'issues_action',
+          pathname: '/issues/1/edit',
+          params: { id: '1', action: 'edit' },
+          data: 2,
+        });
       });
 
-      result = Router._matchPathname('/issues/1/edit');
-      expect(result).to.deep.equal({
-        routeName: 'issues_action',
-        pathname: '/issues/1/edit',
-        params: { id: '1', action: 'edit' }
+      it('with and without a trailing /', () => {
+
       });
     });
 
@@ -83,8 +81,9 @@ describe('Router', () => {
         routeName: 'issues',
         pathname: '/issues/1',
         params: { id: '1' },
-        query: { a: '1', b: '2' },
-        hash: { c: '3', d: '4' }
+        queryParams: { a: '1', b: '2' },
+        hashParams: { c: '3', d: '4' },
+        data: undefined
       });
 
     });
@@ -102,14 +101,14 @@ describe('Router', () => {
 
     it('has initial state', () => {
       const state = Router._store.getState().route;
-      console.log(state);
 
       expect(state).to.deep.equal({
         routeName: null,
         pathname: '/',
         params: {},
-        query: {},
-        hash: {}
+        queryParams: {},
+        hashParams: {},
+        data: undefined
       });
     });
 
@@ -125,11 +124,12 @@ describe('Router', () => {
       expect(state).to.deep.equal({
         routeName: 'issues',
         pathname: '/issues/1',
-        hash: {},
-        query: {},
         params: {
           id: '1'
-        }
+        },
+        data: undefined,
+        hashParams: {},
+        queryParams: {}
       });
     });
 
@@ -143,8 +143,8 @@ describe('Router', () => {
 
       const path = Router.pathFor('issues', {
         params: { id: 1 },
-        query: { a: 2, b: 3 },
-        hash: { c: 4, d: 5 }
+        queryParams: { a: 2, b: 3 },
+        hashParams: { c: 4, d: 5 }
       });
       expect(path).to.equal('/issues/1?a=2&b=3#c=4&d=5');
     });

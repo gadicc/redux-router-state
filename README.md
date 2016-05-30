@@ -10,12 +10,31 @@ Store router state in Redux and route via redux
 * The (optional) react <Router> component subscribes to redux router state for changes
 * See "Related Projects" at the bottom of the README for (dis)similar alternatives
 
-## Usage:
+## Setup and Pure-JS (no react usage)
+
+*See below for React helpers*
 
 ```js
+import { combineReducers, createStore } from 'redux';
 import Router from 'redux-router-state';
 
+// Add your routes BEFORE creating your Store with the reducer
+// This step could be done for via the React helper, see below.
+Router.add('home', '/');
 Router.add('issue_id', '/issues/:id');
+
+// Include Router.reducer when setting up your reducers
+const reducers = combineReducers({
+  route: Router.reducer
+});
+
+// However you usually create your store
+const Store = createStore(reducers, {},
+  window.devToolsExtension && window.devToolsExtension()
+);
+
+// Initialize the Router with your store.
+Router.init(Store);
 ```
 
 State:
@@ -37,6 +56,29 @@ State:
     }
   }
 }
+```
+
+## React Helpers
+
+Optional react-router inspired config:
+
+```js
+<Provider store={Store} />
+  <Router>
+    <Route name="home" path="/">
+      <Home />
+    </Route>
+    <Route name="issues" path="/issues/:id">
+      <Issues />
+    </Route>
+  </Router>
+</Provider>
+```
+
+Creating links:
+
+```js
+<Link to="issues" params={{id: 1}}>Issue #1</Link>
 ```
 
 ### Related projects:

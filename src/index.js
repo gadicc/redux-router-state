@@ -5,8 +5,9 @@ const Router = {
   _routes: {},
   _store: null,
   _state: {},
+  _history: window.history,
 
-  add(name, _pattern) {
+  add(name, _pattern, data) {
     const pattern = this._toRegex(_pattern);
 
     this._routes[name] = {
@@ -14,47 +15,26 @@ const Router = {
       origPattern: _pattern,
       regexp: pattern.regexp,
       params: pattern.params,
+      data
     };
   },
  
-  start(store) {
-    if (!this._store) {
-      if (!store)
-        this._store = createStore(combineReducers({
-          route: this.reducer
-        }));        
-      else
-        this._store = store;
-    }
-
-    const nextState = this._matchAll(window.location);
-    this._updateState(nextState);
-
-
-    this._store.subscribe(() => {
-      const nextState = this._store.getState().route;
-      //console.log('store change', nextState);
-      this._updateHistoryFromState(this._state, nextState);
-      this._state = nextState;
-    });
+  init(store) {
+    this._configureStore(store);
+    this._configureStoreSubscription();
   },
 
-  _updateHistoryFromState(prev, next) {
-    if (next.pathname !== prev.pathname)
-      return history.pushState(null, null, this.pathFor(next.routeName, next))
-  },
-
-  /* --- */
+  /* --- Link generation --- */
 
   pathFor(name, options) {
     if (!options)
-      return this._pathnameFor(route);
+      return this._pathnameFor(name);
 
     let path = this._pathnameFor(name, options.params)
-    if (options.query)
-      path += this._toEncodedURI(options.query, '?');
-    if (options.hash)
-      path += this._toEncodedURI(options.hash, '#');
+    if (options.queryParams)
+      path += this._toEncodedURI(options.queryParams, '?');
+    if (options.hashParams)
+      path += this._toEncodedURI(options.hashParams, '#');
 
     return path;
   },
@@ -62,21 +42,22 @@ const Router = {
   _pathnameFor(name, params) {
     const route = this._routes[name];
     if (!route)
-      throw new Error("No such route '" + name + '"');
+      throw new Error("No such route '" + name + "'");
 
     let path = route.origPattern;
     return params ? path.replace(/:(\w+)/g, (m, name) => params[name]) : path;
   },
 
-  /* --- typical router navigation --- */
+  /* --- Navigation / updating of URL state --- */
 
-  go(routeName, options) {
+  go(routeName, options = {}) {
     const nextState = {
       routeName,
+      data: this._routes[routeName].data,
       pathname: this._pathnameFor(routeName, options.params),
       params: this._stringify(options.params) || {},
-      query: this._stringify(options.query) || {},
-      hash: this._stringify(options.hash) || {}
+      queryParams: this._stringify(options.queryParams) || {},
+      hashParams: this._stringify(options.hashParams) || {}
     };
     this._updateState(nextState);
   },
@@ -85,52 +66,65 @@ const Router = {
 
   },
 
-  _stringify(obj) {
-    const out = {};
-    for (let key in obj)
-      out[key] = obj[key].toString();
-    return out;
-  },
-
-  /* --- */
-
-  _updateState(state) {
-    this._store.dispatch({
-      type: 'ROUTE_UPDATE',
-      state
-    });
-  },
+  /* --- redux integration: all methods accessing this._store methods --- */
 
   reducer(state, action) {
-    if (!state)
-      return Router._matchAll(window.location);
+    if (!state) {
+      Router._state = Router._matchAll(window.location);
+      return Router._state;
+    }
     if (action.type === 'ROUTE_UPDATE')
       return action.state;
     return state;
   },
 
-  _toEncodedURI(obj, firstChar) {
-    let out = firstChar;
-    for (let key in obj)
-      out += key + '=' + encodeURIComponent(obj[key]) + '&';
-    return out.substr(0, out.length-1);
+  _configureStore(store) {
+    if (store)
+      this._store = store;
+    else
+      this._store = createStore(combineReducers({
+        route: this.reducer,
+      }));        
   },
+
+  _configureStoreSubscription() {
+    this._store.subscribe(() => {
+      const nextState = this._store.getState().route;
+      //console.log('store change', nextState);
+      this._updateHistoryFromState(this._state, nextState);
+      this._state = nextState;    
+    });
+  },
+
+  _updateState(state) {
+    this._store.dispatch({
+      type: 'ROUTE_UPDATE',
+      state,
+    });
+  },
+
+  _updateHistoryFromState(prev, next) {
+    if (next.pathname !== prev.pathname)
+      return this._history.pushState(null, null, this.pathFor(next.routeName, next))
+  },
+
+  /* matching functions; extract router state from window.location */
 
   _matchAll(location) {
     return {
       ...this._matchPathname(location.pathname),
-      query: this._matchSearchOrHash(location.search, '?'),
-      hash: this._matchSearchOrHash(location.hash, '#'),
+      queryParams: this._matchSearchOrHash(location.search, '?'),
+      hashParams: this._matchSearchOrHash(location.hash, '#'),
     };
   },
 
   _matchPathname(pathname) {
     const params = {};
-    let routeName = null;
+    let routeName = null, route, match;
 
     for (routeName in this._routes) {
-      const route = this._routes[routeName];
-      const match = pathname.match(route.regexp);
+      route = this._routes[routeName];
+      match = pathname.match(route.regexp);
       if (match) {
         for (let i = 0; i < route.params.length; i++)
           params[route.params[i]] = match[i + 1];
@@ -142,6 +136,7 @@ const Router = {
       routeName,
       pathname,
       params,
+      data: route ? route.data : undefined,
     };
   },
 
@@ -163,6 +158,15 @@ const Router = {
     return params;
   },
 
+  /* utility functions */
+
+  _toEncodedURI(obj, firstChar) {
+    let out = firstChar;
+    for (let key in obj)
+      out += key + '=' + encodeURIComponent(obj[key]) + '&';
+    return out.substr(0, out.length-1);
+  },
+
   _toRegex(_pattern) {
     const params = [];
     const pattern = _pattern.replace(/:(\w+)/g, (match, name) => {
@@ -173,6 +177,16 @@ const Router = {
       regexp: new RegExp('^' + pattern + '$'),
       params,
     };
+  },
+
+  /*
+   * Given an object of depth 1, make sure all it's values are Strings
+   */
+  _stringify(obj) {
+    const out = {};
+    for (let key in obj)
+      out[key] = obj[key].toString();
+    return out;
   },
 
   /* Useful for testing or obscure cases */
@@ -198,17 +212,6 @@ const Router = {
 };
 
 /*
- * TODO
- *  - popstate, pushstate
- *  -
- */
-
-/*
-window.onbeforeunload = function(e) {
-  console.log(e);
-}
-*/
-
 window.onpopstate = function(event) {
   console.log("popstate: " + document.location + ", state: " + JSON.stringify(event.state));
 };
@@ -216,9 +219,6 @@ window.onpopstate = function(event) {
 window.onhashchange = function() {
   console.log("hashchange: " + document.location + ", state: " + JSON.stringify(event.state));
 };
-
-window.onload = function() {
-  Router.start();
-};
+*/
 
 export default Router;
