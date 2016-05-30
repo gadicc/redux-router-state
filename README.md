@@ -60,7 +60,7 @@ State:
 
 ## React Helpers
 
-Optional react-router inspired config:
+**Optional react-router inspired config:**
 
 ```js
 <Provider store={Store} />
@@ -69,17 +69,43 @@ Optional react-router inspired config:
       <Home />
     </Route>
     <Route name="issues" path="/issues/:id">
-      <Issues />
+        <h1>Issue #{props.id}</h1>
+    </Route>
+    <Route name="users" path="/users"
+      mapRouteToProps={route => {asc: route.queryParams.asc}}>
+        <h1>Users ({props.asc?"Asceending":"Descending")</h1>
     </Route>
   </Router>
 </Provider>
 ```
 
-Creating links:
+**Creating links:**
 
 ```js
 <Link to="issues" params={{id: 1}}>Issue #1</Link>
 ```
+
+**Accessing route info:**
+
+By default, only the route params are passed down as individual props, to avoid unnecessary re-rendering.  You can override this with the `mapRouteToProps` attribute (as above), and/or, use the `connectRouter` HOC on individual compoents that works pretty much how you'd expect:
+
+`connectRouter([optionalMappingFunction], Component)`
+
+```js
+const showIssue = routerConnect(
+  // optional mapping function, provides 'id' as the only prop
+  (route) => { id: route.params.id },
+
+  // display component, could be an existing constant
+  (id) => ( <h1>Issue #{id}</h1> )
+);
+```
+
+// Without the optional mapping function, a "route" prop is given, with the
+// entire router state.  This may lead to unnecessary re-rendering.
+```
+
+Like `react-redux`'s `connect` (which we use), it assumes a `<Provider>` ancestor.
 
 ### Related projects:
 
