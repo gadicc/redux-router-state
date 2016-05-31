@@ -2,7 +2,7 @@
 
 Store router state in Redux and route via redux
 
-[![Circle CI](https://circleci.com/gh/gadicc/redux-router-state.svg?style=shield)](https://circleci.com/gh/gadicc/redux-router-state) [![Coverage Status](https://coveralls.io/repos/github/gadicc/redux-router-state/badge.svg?branch=master)](https://coveralls.io/github/gadicc/redux-router-state?branch=master) ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+[![npm](https://img.shields.io/npm/v/redux-router-state.svg?maxAge=2592000)](https://www.npmjs.com/package/redux-router-state) [![Circle CI](https://circleci.com/gh/gadicc/redux-router-state.svg?style=shield)](https://circleci.com/gh/gadicc/redux-router-state) [![Coverage Status](https://coveralls.io/repos/github/gadicc/redux-router-state/badge.svg?branch=master)](https://coveralls.io/github/gadicc/redux-router-state?branch=master) ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 Copyright (c) 2016 Gadi Cohen &lt;dragon@wastelands.net&gt;, released under the MIT license.
 
