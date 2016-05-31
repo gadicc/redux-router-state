@@ -10,7 +10,7 @@ Copyright (c) 2016 Gadi Cohen &lt;dragon@wastelands.net&gt;, released under the 
 
 * Storing router state in redux is a design principle, not an after thought
 * `Router.go()`, `Router.setParams()`, etc dispatch actions to the redux store.
-* `pushState, replaceState etc fire on changes to *redux* state (i.e. time travel works great out the box).
+* `pushState` fires on changes to *redux* state (i.e. time travel works great out the box).
 * The (optional) react <Router> component subscribes to redux router state for changes
 * See "Related Projects" at the bottom of the README for (dis)similar alternatives
 
@@ -41,12 +41,12 @@ const Store = createStore(reducers, {},
 Router.init(Store);
 ```
 
-State:
+Sample State:
 
 ```js
+// http://x.com/issues/1/?action=edit#mode=markdown
 {
-  // http://x.com/issues/1/?action=edit#mode=markdown
-  Router: {
+  route: {
     name: 'issue_id',
     pathname: '/issues/1/'
     params: {
@@ -63,32 +63,9 @@ State:
 }
 ```
 
-**What about feature XXX?  What about forced login?**
-
-Get out of the habit of thinking about the Router as a separate entity, and realize that it's now just like any other state in your store.  A lot of the the things we needed before as router features can now just be done by subscribing to state changes or with additional reducer functions.  e.g.
-
-```js
-Router.add('inbox', '/inbox', { requiresLogin: true });
-
-// Not implemented yet, still planning...
-const customRouteReducer = (routeState) => {
-  routeState = Router.reduce(routeState);
-  if (routeState.data.requiresLogin && !loggedIn)
-    Router.rewriteState(routerState, 'loginPage');
-  return routerState;
-};
-
-// With your other reducers...
-const reducers = combineReducers({
-  route: customRouteReducer
-});
-```
-
-May still go with groups, `onReduce`, and/or similar methods.
-
 ## React
 
-**Optional react-router inspired config:**
+### Optional react-router inspired config
 
 ```js
 const App = () => (
@@ -116,13 +93,13 @@ const ShowUsers({asc}) => (
 
 ```
 
-**Creating links:**
+### Creating links:
 
 ```js
 <Link to="issues" params={{id: 1}}>Issue #1</Link>
 ```
 
-**Accessing route info:**
+### Accessing route info
 
 **NB: all params are provided as Strings**, since they come from the URL.  It's up to you to convert to Numbers, if needed (e.g. before comparisons).
 
@@ -138,7 +115,6 @@ const showIssue = routerConnect(
   // display component, could be an existing constant
   (id) => ( <h1>Issue #{id}</h1> )
 );
-```
 
 // Without the optional mapping function, a "route" prop is given, with the
 // entire router state.  This may lead to unnecessary re-rendering.
@@ -146,15 +122,35 @@ const showIssue = routerConnect(
 
 Like `react-redux`'s `connect` (which we use), it assumes a `<Provider>` ancestor.
 
-**Anything more complicated?**
+### Anything more complicated?
 
 Don't forget, the above are just convenience helpers.  Your entire route state is available in the redux store, that you can use just like any other state.
 
-### Related projects:
+## What about feature XXX?  What about forced login?
 
-* Similar to [universal-redux-router](https://www.npmjs.com/package/universal-redux-router)
-  but works in a slightly different (and imho simpler) way, i.e. no need to define your
-  own reducers for each part of every route.
+Get out of the habit of thinking about the Router as a separate entity, and realize that it's now just like any other state in your store.  A lot of the the things we needed before as router features can now just be done by subscribing to state changes or with additional reducer functions.  e.g.
 
-* Dissimilar to [react-router-redux](https://github.com/reactjs/react-router-redux) and
-  react-router which stores state in a hidden redux store just for timetravel.
+```js
+Router.add('inbox', '/inbox', { requiresLogin: true });
+
+// Not implemented yet, still planning...
+const customRouteReducer = (routeState) => {
+  routeState = Router.reduce(routeState);
+  if (routeState.data.requiresLogin && !loggedIn)
+    Router.rewriteState(routerState, 'loginPage');
+  return routerState;
+};
+
+// With your other reducers...
+const reducers = combineReducers({
+  route: customRouteReducer
+});
+```
+
+May still go with groups, `onReduce`, and/or similar methods.
+
+## Related projects:
+
+* Similar to [universal-redux-router](https://www.npmjs.com/package/universal-redux-router) but works in a slightly different (and imho simpler) way, i.e. no need to define your own reducers for each part of every route.
+
+* Dissimilar to [react-router-redux](https://github.com/reactjs/react-router-redux) and react-router which stores state in a hidden redux store just for timetravel.
