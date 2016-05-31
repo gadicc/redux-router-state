@@ -28,59 +28,25 @@ const RouterContainer = connect(
   state => ({ routeName: state && state.route && state.route.routeName })
 )(RouterComponent);
 
-function defaultMapRouteToProps(route) {
-  return { ...route.params };
-}
+const defaultMapRouteToProps = (route) => ({ params: route.params });
 
-// This is only so complicated to support mapStateToProps, but it's a useful
-// shortcut.
-class Route extends Component {
-  constructor(props) {
-    super(props);
+const Route = ({component, mapRouteToProps}) => {
+  if (mapRouteToProps === undefined)
+    mapRouteToProps = defaultMapRouteToProps;
 
-    if (props.mapRouteToProps)
-      this.mapStateToProps = props.mapRouteToProps;
-    else if (props.mapRouteToProps === false)
-      this.mapStateToProps = false;
-    else
-      this.mapStateToProps = defaultMapRouteToProps;
-
-    if (this.props.children && this.mapStateToProps) {
-      this.state = this.mapStateToProps(Router._store.getState().route);
-      this._unsubsribe = Router._store.subscribe(() => {
-        this.state = this.mapStateToProps(Router._store.getState().route);
-      });
-    } else
-      this.state = {};
-  }
-
-  compnoentWillUnmount() {
-    this._unsubsribe();
-  }
-
-  render() {
-    if (this.props.children)
-      return React.cloneElement(
-        this.props.children,
-        this.state
-      );
-    else
-      return React.createElement(connectRouter(
-        this.mapStateToProps,
-        this.props.component
-      ));
-  }
-}
+  return mapRouteToProps
+    ? React.createElement(connectRouter(mapRouteToProps, component))
+    : React.createElement(component);
+};
 Route.propTypes = {
-//  component: PropTypes.instanceOf(Component),
-  children: PropTypes.node,
+  component: PropTypes.oneOfType([PropTypes.func, PropTypes.string]).isRequired,
   mapRouteToProps: PropTypes.oneOfType([PropTypes.bool, PropTypes.func])
 };
 
 const Link = ({to, children, params, queryParams, hashParams, title}) => {
   const path = Router.pathFor(to, { params, queryParams, hashParams });
   const onClick = (event) => {
-    Router.go(to, { params, query: queryParams, hashParams });
+    Router.go(to, { params, queryParams, hashParams });
     event.preventDefault();
     return false;
   };

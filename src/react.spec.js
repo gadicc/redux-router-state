@@ -33,19 +33,17 @@ describe('React components', () => {
   });
 
   describe('Route', () => {
-    it('passes through it\'s child', () => {
+    it("renders it's component", () => {
       const TestComp = () => { return ( <div>test</div> ); };
 
       const wrapper = mount(
-        <Route name="irrelevent" mapRouteToProps={false}>
-          <TestComp>hi</TestComp>
-        </Route>
+        <Route name="irrelevent" component={TestComp} mapRouteToProps={false} />
       );
 
       expect(wrapper.html()).to.equal('<div>test</div>');
     });
 
-    it('by default provides route params as props', () => {
+    it('by default provides route params as props.params', () => {
       Router._clearRoutes();
       Router.add('issue', '/issues/:id');
       Router.init();
@@ -54,10 +52,10 @@ describe('React components', () => {
 
       const wrapper = mount(
         <Provider store={Router._store}>
-          <Route name="issue" path="/issues/:id"><Div/></Route>
+          <Route name="issue" path="/issues/:id" component={Div} />
         </Provider>
       );
-      expect(wrapper.find(Div).props().id).to.equal('1');
+      expect(wrapper.find(Div).props().params.id).to.equal('1');
     });
 
     it('accepts a mapRouteToProps', () => {
@@ -69,9 +67,8 @@ describe('React components', () => {
 
       const wrapper = mount(
         <Provider store={Router._store}>
-          <Route name="issue" path="/issues/:id"
-            mapRouteToProps={route => ({ id: route.params.id })}
-          ><Div /></Route>
+          <Route name="issue" path="/issues/:id" component={Div}
+            mapRouteToProps={route => ({ id: route.params.id })} />
         </Provider>
       );
       console.log(wrapper.find(Div).props());

@@ -2,7 +2,11 @@
 
 Store router state in Redux and route via redux
 
-## Goals:
+[![Circle CI](https://circleci.com/gh/gadicc/redux-router-state.svg?style=shield)](https://circleci.com/gh/gadicc/redux-router-state) [![Coverage Status](https://coveralls.io/repos/github/gadicc/redux-router-state/badge.svg?branch=master)](https://coveralls.io/github/gadicc/redux-router-state?branch=master) ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+
+Copyright (c) 2016 Gadi Cohen &lt;dragon@wastelands.net&gt;, released under the MIT license.
+
+## Design Goals:
 
 * Storing router state in redux is a design principle, not an after thought
 * `Router.go()`, `Router.setParams()`, etc dispatch actions to the redux store.
@@ -21,7 +25,7 @@ import Router from 'redux-router-state';
 // Add your routes BEFORE creating your Store with the reducer
 // This step could be done for via the React helper, see below.
 Router.add('home', '/');
-Router.add('issue_id', '/issues/:id');
+Router.add('issue_id', '/issues/:id', optionalData);
 
 // Include Router.reducer when setting up your reducers
 const reducers = combineReducers({
@@ -53,12 +57,36 @@ State:
     },
     hash: {
       mode: 'markdown'
-    }
+    },
+    data: optionalData
   }
 }
 ```
 
-## React Helpers
+**What about feature XXX?  What about forced login?**
+
+Get out of the habit of thinking about the Router as a separate entity, and realize that it's now just like any other state in your store.  A lot of the the things we needed before as router features can now just be done by subscribing to state changes or with additional reducer functions.  e.g.
+
+```js
+Router.add('inbox', '/inbox', { requiresLogin: true });
+
+// Not implemented yet, still planning...
+const customRouteReducer = (routeState) => {
+  routeState = Router.reduce(routeState);
+  if (routeState.data.requiresLogin && !loggedIn)
+    Router.rewriteState(routerState, 'loginPage');
+  return routerState;
+};
+
+// With your other reducers...
+const reducers = combineReducers({
+  route: customRouteReducer
+});
+```
+
+May still go with groups, `onReduce`, and/or similar methods.
+
+## React
 
 **Optional react-router inspired config:**
 
@@ -66,30 +94,24 @@ State:
 const App = () => (
   <Provider store={Store} />
     <Router>
-      <Route name="home" path="/">
-        <div>
-          <h1>Welcome home!</h1>
-          <div>
-            You can put simple things inline but using component=
-            is better (and we might stop supporting this)
-          </div>
-        </div>
-      </Route>
+      <Route name="home" path="/" component={Home} />
 
       <Route name="issues" path="/issues/:id" component={ShowIssue} />
 
       <Route name="users" path="/users" component={ShowUsers}
-        mapRouteToProps={route => {asc: route.queryParams.asc}}>
+        mapRouteToProps={route => {asc: route.queryParams.asc}} />
+
+      <Route name={null} component={NotFound} />
     </Router>
   </Provider>
 );
 
-const ShowIssue({id}) => (
-  <h1>Issue #{id}</h1>
+const ShowIssue({params}) => (
+  <h1>Issue #{params.id}</h1>
 );
 
 const ShowUsers({asc}) => (
-  <h1>Users ({props.asc?"Asceending":"Descending")</h1>
+  <h1>Users ({asc?"Asceending":"Descending")</h1>
 );
 
 ```
@@ -101,6 +123,8 @@ const ShowUsers({asc}) => (
 ```
 
 **Accessing route info:**
+
+**NB: all params are provided as Strings**, since they come from the URL.  It's up to you to convert to Numbers, if needed (e.g. before comparisons).
 
 By default, only the route params are passed down as individual props, to avoid unnecessary re-rendering.  You can override this with the `mapRouteToProps` attribute (as above), and/or, use the `connectRouter` HOC on individual compoents that works pretty much how you'd expect:
 
@@ -121,6 +145,10 @@ const showIssue = routerConnect(
 ```
 
 Like `react-redux`'s `connect` (which we use), it assumes a `<Provider>` ancestor.
+
+**Anything more complicated?**
+
+Don't forget, the above are just convenience helpers.  Your entire route state is available in the redux store, that you can use just like any other state.
 
 ### Related projects:
 

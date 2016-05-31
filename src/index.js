@@ -62,8 +62,33 @@ const Router = {
     this._updateState(nextState);
   },
 
-  setParams(params) {
+  // Actual API is set after defining Router, further down.
 
+  _setParams(key, params) {
+    const nextState = {
+      ...this._state,
+      [key]: this._stringify(params)
+    };
+
+    if (key === 'params')
+      nextState.pathname = this._pathnameFor(this._state.routeName, params);
+
+    this._updateState(nextState);
+  },
+
+  _updateParams(key, params) {
+    const nextState = {
+      ...this._state,
+      [key]: {
+        ...this._state[key],
+        ...this._stringify(params)
+      }
+    };
+
+    if (key === 'params')
+      nextState.pathname = this._pathnameFor(this._state.routeName, params);
+
+    this._updateState(nextState);
   },
 
   /* --- redux integration: all methods accessing this._store methods --- */
@@ -104,8 +129,7 @@ const Router = {
   },
 
   _updateHistoryFromState(prev, next) {
-    if (next.pathname !== prev.pathname)
-      return this._history.pushState(null, null, this.pathFor(next.routeName, next))
+    this._history.pushState(null, null, this.pathFor(next.routeName, next));
   },
 
   /* matching functions; extract router state from window.location */
@@ -210,6 +234,17 @@ const Router = {
   },
 
 };
+
+// Aliases
+Router.path = Router.pathFor;
+
+// Bound methods
+Router.setParams = Router._setParams.bind(Router, 'params');
+Router.setQueryParams = Router._setParams.bind(Router, 'queryParams');
+Router.setHashParams = Router._setParams.bind(Router, 'hashParams');
+Router.updateParams = Router._updateParams.bind(Router, 'params');
+Router.updateQueryParams = Router._updateParams.bind(Router, 'queryParams');
+Router.updateHashParams = Router._updateParams.bind(Router, 'hashParams');
 
 /*
 window.onpopstate = function(event) {
