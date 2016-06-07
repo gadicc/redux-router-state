@@ -17,25 +17,55 @@ global.document = document;
 global.window = window;
 global.navigator = window.navigator; // for reactDOM
 
+Router.init();
+
 /* globals describe it */
 
 describe('React components', () => {
+
+  const TestComp = () => ( <div>test</div> );
 
   describe('Router', () => {
 
     it("passes through the correct child", () => {
       Router._clearRoutes();
-      Router.add('home', '/');
       Router.add('users', '/users');
+      Router.add('home', '/');
+      Router.go('home');
 
-      const TestComp = () => { return ( <div>test</div> ); };
+      const wrapper = mount(
+        <Provider store={Router._store}>
+          <Router>
+            <Route name="home" component={TestComp} />
+          </Router>
+        </Provider>
+      );
+
+      console.log(wrapper.find(TestComp));
+      expect(wrapper.find(TestComp)).to.be.true;
+
+    });
+
+    if(0)
+    it("calls Router.add for new routes", () => {
+      Router._clearRoutes();
+      Router.add('home', '/');
+      Router.go('home');
+
+      shallow(
+        <Provider store={Router._store}>
+          <Router>
+            <Route name="users" path="/users" component={TestComp} />
+          </Router>
+        </Provider>
+      );
+
+      expect(Router._routes['users']).to.exist;
     });
   });
 
   describe('Route', () => {
     it("renders it's component", () => {
-      const TestComp = () => { return ( <div>test</div> ); };
-
       const wrapper = mount(
         <Route name="irrelevent" component={TestComp} mapRouteToProps={false} />
       );
@@ -46,33 +76,28 @@ describe('React components', () => {
     it('by default provides route params as props.params', () => {
       Router._clearRoutes();
       Router.add('issue', '/issues/:id');
-      Router.init();
       Router.go('issue', { params: { id: 1 }});
-      const Div = () => (<div />);
 
       const wrapper = mount(
         <Provider store={Router._store}>
-          <Route name="issue" path="/issues/:id" component={Div} />
+          <Route name="issue" path="/issues/:id" component={TestComp} />
         </Provider>
       );
-      expect(wrapper.find(Div).props().params.id).to.equal('1');
+      expect(wrapper.find(TestComp).props().params.id).to.equal('1');
     });
 
     it('accepts a mapRouteToProps', () => {
       Router._clearRoutes();
       Router.add('issue', '/issues/:id');
-      Router.init();
       Router.go('issue', { params: { id: 1 }});
-      const Div = () => (<div />);
 
       const wrapper = mount(
         <Provider store={Router._store}>
-          <Route name="issue" path="/issues/:id" component={Div}
+          <Route name="issue" path="/issues/:id" component={TestComp}
             mapRouteToProps={route => ({ id: route.params.id })} />
         </Provider>
       );
-      console.log(wrapper.find(Div).props());
-      expect(wrapper.find(Div).props().id).to.equal('1');
+      expect(wrapper.find(TestComp).props().id).to.equal('1');
     });
   });
 
@@ -105,10 +130,8 @@ describe('React components', () => {
   describe('connectRouter', () => {
 
     it('has a default map', () => {
-      Router.init();
       Router.go('issues', { params: { id: 1 }});
 
-      const TestComp = () => { return ( <div>test</div> ); };
       const Container = connectRouter(TestComp);
 
       const wrapper = shallow(<Container store={Router._store}/>);
@@ -123,10 +146,8 @@ describe('React components', () => {
     });
 
     it('accepts a custom map', () => {
-      Router.init();
       Router.go('issues', { params: { id: 1 }});
 
-      const TestComp = () => { return ( <div>test</div> ); };
       const Container = connectRouter(
         route => ({ id: route.params.id }),
         TestComp

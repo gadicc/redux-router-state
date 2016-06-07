@@ -5,7 +5,8 @@ const Router = {
   _routes: {},
   _store: null,
   _state: {},
-  _history: window.history,
+  _listeners: {},
+  _initted: false,
 
   add(name, _pattern, data) {
     const pattern = this._toRegex(_pattern);
@@ -17,11 +18,35 @@ const Router = {
       params: pattern.params,
       data
     };
+
+    if (this._initted) {
+      const match = this._matchPathname(window.location.pathname, name);
+      if (match.routeName === name) {
+        const nextState = Router._matchAll(window.location, name);
+        this._updateState(nextState);
+        this._emit('matchedAdd', nextState);
+      }
+    }
   },
  
   init(store) {
     this._configureStore(store);
     this._configureStoreSubscription();
+    this._initted = true;
+  },
+
+  /* --- Events --- */
+
+  on(hook, listener) {
+    if (!this._listeners[hook])
+      this._listeners[hook] = [];
+
+    this._listeners[hook].push(listener);
+  },
+
+  _emit(hook, data) {
+    if (this._listeners[hook])
+      this._listeners[hook].forEach(f => f(data));
   },
 
   /* --- Link generation --- */
@@ -50,16 +75,19 @@ const Router = {
 
   /* --- Navigation / updating of URL state --- */
 
-  go(routeName, options = {}) {
-    const nextState = {
+  stateFor(routeName, options = {}) {
+    return {
       routeName,
       data: this._routes[routeName].data,
       pathname: this._pathnameFor(routeName, options.params),
       params: this._stringify(options.params) || {},
       queryParams: this._stringify(options.queryParams) || {},
       hashParams: this._stringify(options.hashParams) || {}
-    };
-    this._updateState(nextState);
+    }    
+  },
+
+  go(routeName, options) {
+    this._updateState(this.stateFor(routeName, options));
   },
 
   // Actual API is set after defining Router, further down.
@@ -93,7 +121,7 @@ const Router = {
 
   /* --- redux integration: all methods accessing this._store methods --- */
 
-  reducer(state, action) {
+  reducer: function RouterReducer(state, action) {
     if (!state) {
       Router._state = Router._matchAll(window.location);
       return Router._state;
@@ -129,30 +157,51 @@ const Router = {
   },
 
   _updateHistoryFromState(prev, next) {
-    this._history.pushState(null, null, this.pathFor(next.routeName, next));
+    window.history.pushState(null, null, this.pathFor(next.routeName, next));
   },
 
   /* matching functions; extract router state from window.location */
 
-  _matchAll(location) {
+  _matchAll(location, _routeName) {
     return {
-      ...this._matchPathname(location.pathname),
+      ...this._matchPathname(location.pathname, _routeName),
       queryParams: this._matchSearchOrHash(location.search, '?'),
       hashParams: this._matchSearchOrHash(location.hash, '#'),
     };
   },
 
-  _matchPathname(pathname) {
+  _matchPathname(pathname, _routeName) {
     const params = {};
-    let routeName = null, route, match;
+    let routeName = null, route;
 
-    for (routeName in this._routes) {
-      route = this._routes[routeName];
-      match = pathname.match(route.regexp);
+    function match(route) {
+      if (!route) 
+        return false;
+
+      const match = pathname.match(route.regexp);
       if (match) {
         for (let i = 0; i < route.params.length; i++)
           params[route.params[i]] = match[i + 1];
-        break;
+        return true;        
+      }
+
+      return false;
+    }
+
+    if (_routeName) {
+      routeName = _routeName;
+      route = this._routes[routeName];
+      if (!match(route))
+        return {
+          routeName: null,
+          pathname,
+          params
+        };
+    } else {
+      for (routeName in this._routes) {
+        route = this._routes[routeName];
+        if (match(route))
+          break;
       }
     }
 

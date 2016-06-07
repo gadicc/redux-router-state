@@ -2,26 +2,81 @@ import React, { Component, PropTypes } from 'react';
 import { connect } from 'react-redux';
 import Router from './index.js';
 
+const DefaultLayout = ({Content}) => (
+  <Content />
+);
+
+function chooseLayout(match, props) {
+  if (match.data) {
+    if (match.data.Layout)
+      return match.data.Layout;
+    if (match.data.Layout === null)
+      return DefaultLayout;
+    if (props.Layout)
+      return props.Layout;
+    return DefaultLayout;
+  }
+}
+
+const instances = [];
+
+Router.on('matchedAdd', () => {
+  instances.forEach(comp => comp.forceUpdate());
+});
+
 class RouterComponent extends Component {
   constructor(props) {
     super(props);
+
+    let children = props.children ?
+      (Array.isArray(props.children) ? children : [ children ]) : [];
+
+    children.forEach(route => {
+      if (!Router._routes[route.props.name])
+        Router.add(route.props.name, route.props.path);
+    });
+
+    instances.push(this);
+  }
+
+  componentWillUnmount() {
+    instances.remove(this);
   }
 
   render() {
-    const match = this.props.children.find(
-      c => c.props.name === this.props.routeName
-    );
+    let Layout, match;
 
-    if (!match) {
-      throw new Error("No match");
+    // from a <Route> element
+    if (this.props.children) {
+      match = this.props.children.find(
+        c => c.props.name === this.props.routeName
+      );
+      if (match) {
+        Layout = chooseLayout(match, this.props);
+        return <Layout Content={match} />;
+      }
     }
 
-    return match;
+    // from a Router.add with a data: { component: <ReactComponent> }
+    match = Router._routes[this.props.routeName];
+    if (match) {
+      if (match.data && match.data.component) {
+        Layout = chooseLayout(match, this.props);
+        return <Layout Content={match.data.component} />;
+      }
+      else
+        throw new Error("No { component: <ReactComponent> } data for "
+          + this.props.routeName + " (from non-<Router> match)");
+    }
+
+    if (!match)
+      throw new Error("No match");
   }
 }
 RouterComponent.propTypes = {
   routeName: PropTypes.string,
-  children: PropTypes.node.isRequired
+  children: PropTypes.node,
+  Layout: PropTypes.func
 };
 
 const RouterContainer = connect(

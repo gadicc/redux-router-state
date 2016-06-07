@@ -23,9 +23,10 @@ import { combineReducers, createStore } from 'redux';
 import Router from 'redux-router-state';
 
 // Add your routes BEFORE creating your Store with the reducer
-// This step could be done for via the React helper, see below.
+// This step could be done for you via the React helper, see below.
 Router.add('home', '/');
 Router.add('issue_id', '/issues/:id', optionalData);
+Router.add()
 
 // Include Router.reducer when setting up your reducers
 const reducers = combineReducers({
@@ -154,3 +155,12 @@ May still go with groups, `onReduce`, and/or similar methods.
 * Similar to [universal-redux-router](https://www.npmjs.com/package/universal-redux-router) but works in a slightly different (and imho simpler) way, i.e. no need to define your own reducers for each part of every route.
 
 * Dissimilar to [react-router-redux](https://github.com/reactjs/react-router-redux) and react-router which stores state in a hidden redux store just for timetravel.
+
+## TODO
+
+* Router.add - should dispatch on matching route
+* Router.add component for <Router>
+* <Route> should call Router.add
+* <Router> needs way to be refreshed on route add after render time
+* Pattern for forcing login
+
