@@ -23,7 +23,6 @@ function chooseLayout(match, props) {
 const instances = new Set();
 
 Router.on('matchedAdd', () => {
-  console.log(instances);
   instances.forEach(comp => deepForceUpdate(comp));
 });
 
