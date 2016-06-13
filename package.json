@@ -57,6 +57,7 @@
     "react-redux": "^4.4.5"
   },
   "dependencies": {
-    "babel-runtime": "^6.9.2"
+    "babel-runtime": "^6.9.2",
+    "react-deep-force-update": "^2.0.1"
   }
 }

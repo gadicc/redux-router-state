@@ -1,5 +1,7 @@
 import React, { Component, PropTypes } from 'react';
 import { connect } from 'react-redux';
+import deepForceUpdate from 'react-deep-force-update';
+
 import Router from './index.js';
 
 const DefaultLayout = ({Content}) => (
@@ -18,10 +20,11 @@ function chooseLayout(match, props) {
   }
 }
 
-const instances = [];
+const instances = new Set();
 
 Router.on('matchedAdd', () => {
-  instances.forEach(comp => comp.forceUpdate());
+  console.log(instances);
+  instances.forEach(comp => deepForceUpdate(comp));
 });
 
 class RouterComponent extends Component {
@@ -36,11 +39,11 @@ class RouterComponent extends Component {
         Router.add(route.props.name, route.props.path);
     });
 
-    instances.push(this);
+    instances.add(this);
   }
 
   componentWillUnmount() {
-    instances.remove(this);
+    instances.delete(this);
   }
 
   render() {
