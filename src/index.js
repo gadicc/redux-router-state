@@ -150,10 +150,11 @@ const Router = {
   },
 
   _updateState(state) {
-    this._store.dispatch({
-      type: 'ROUTE_UPDATE',
-      state,
-    });
+    if (JSON.stringify(this._state) !== JSON.stringify(state))
+      this._store.dispatch({
+        type: 'ROUTE_UPDATE',
+        state,
+      });
   },
 
   _updateHistoryFromState(prev, next) {
